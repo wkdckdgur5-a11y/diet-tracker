@@ -65,6 +65,22 @@
   .add-btn:active{background:var(--amber-soft);}
   .empty{font-size:12.5px;color:var(--ink-soft);padding:10px 0;text-align:center;}
 
+  /* pose guide */
+  .pg-btn{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;background:var(--teal-deep);color:#fff;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+  .pg-btn:active{background:var(--teal);}
+  .pose-card{border:1px solid var(--line);padding:11px;margin-bottom:11px;}
+  .pose-card:last-child{margin-bottom:0;}
+  .pose-name{font-weight:700;font-size:14px;margin-bottom:7px;}
+  .pose-svg{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line);}
+  .pose-svg line{stroke:var(--teal-deep);stroke-width:4;stroke-linecap:round;}
+  .pose-svg circle{stroke:var(--teal-deep);stroke-width:4;fill:none;}
+  .pose-svg .pg-ground{stroke:var(--line);stroke-width:2;}
+  .pose-svg .pg-acc{stroke:var(--amber);stroke-width:2;stroke-dasharray:4,3;}
+  .pose-svg .pg-box{stroke:var(--ink-soft);stroke-width:2;fill:none;}
+  .pose-target{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);margin:9px 0 5px;font-weight:700;}
+  .pose-steps{font-size:12.5px;line-height:1.8;margin:0 0 9px;padding-left:18px;}
+  .pose-caution{font-size:11.5px;color:var(--warn);background:var(--warn-soft);padding:7px 9px;}
+
   /* food list */
   .food{display:flex;align-items:center;gap:9px;padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer;}
   .food:last-child{border-bottom:none;}
@@ -380,6 +396,149 @@ PROGRAM.forEach(ph=>{Object.keys(ph.days).forEach(k=>{const v=ph.days[k];if(type
 function curWeek(){const s=DB.get('start',null);if(!s)return null;const st=new Date(s+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);const d=Math.floor((n-st)/86400000);return d<0?null:Math.floor(d/7)+1;}
 const phaseOf=w=>w===null?null:(PROGRAM.find(p=>p.wk.includes(w))||null);
 
+/* ===== 운동 자세 가이드 ===== */
+function pl(x1,y1,x2,y2,cls){return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${cls?` class="${cls}"`:''}/>`;}
+function ph(x,y){return `<circle cx="${x}" cy="${y}" r="7"/>`;}
+function prect(x,y,w,h){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="pg-box"/>`;}
+function poseSVG(inner){return `<svg viewBox="0 0 140 100" class="pose-svg" xmlns="http://www.w3.org/2000/svg">${pl(8,92,132,92,'pg-ground')}${inner}</svg>`;}
+
+const GUIDE={
+  '스쿼트':{
+    target:'대퇴사두근 · 둔근 · 코어',
+    steps:['발을 어깨너비보다 살짝 넓게, 발끝은 15도쯤 바깥으로','엉덩이를 뒤로 빼며 무릎과 고관절을 동시에 굽혀 앉기','무릎이 발끝 라인을 크게 넘지 않도록 유지','허벅지가 바닥과 평행해지면 발뒤꿈치로 밀어 올라오기'],
+    caution:'무릎이 안으로 모이지 않게. 허리가 말리기 시작하면 그 지점까지만 앉기',
+    svg:poseSVG(ph(78,14)+pl(76,22,70,48)+pl(70,48,48,60)+pl(48,60,58,90)+pl(76,25,102,30)+pl(40,60,95,60,'pg-acc'))
+  },
+  '무릎 푸시업':{
+    target:'대흉근 · 삼두근 · 코어',
+    steps:['무릎을 대고 어깨 아래 손을 어깨너비보다 약간 넓게','머리부터 무릎까지 일직선 유지','팔꿈치를 45도로 굽히며 가슴을 바닥 가까이','팔을 펴며 원위치'],
+    caution:'허리가 아래로 꺼지지 않게 코어에 힘 유지',
+    svg:poseSVG(ph(107,51)+pl(98,58,58,60)+pl(58,60,38,84)+pl(38,84,20,88)+pl(98,58,99,73)+pl(99,73,102,88))
+  },
+  '글루트 브릿지':{
+    target:'둔근 · 햄스트링 · 코어',
+    steps:['누워서 무릎을 세우고 발은 골반너비로','발뒤꿈치로 바닥을 밀며 엉덩이를 들어올리기','어깨~골반~무릎이 일직선이 될 때까지','정점에서 1~2초 멈췄다 천천히 내리기'],
+    caution:'허리로 밀어올리지 말고 엉덩이 힘으로. 목에 힘 빼기',
+    svg:poseSVG(ph(109,76)+pl(100,82,65,62)+pl(65,62,45,80)+pl(45,80,35,90)+pl(100,82,106,90)+pl(100,82,45,80,'pg-acc'))
+  },
+  '플랭크':{
+    target:'복직근 · 코어 · 어깨',
+    steps:['팔꿈치를 어깨 바로 아래 두고 전완으로 지지','발끝으로 몸을 들어 머리~발목 일직선','엉덩이가 뜨거나 꺼지지 않게 유지','호흡을 유지하며 정해진 시간 버티기'],
+    caution:'허리가 아래로 처지면 즉시 엉덩이를 살짝 들어 정렬',
+    svg:poseSVG(ph(104,48)+pl(95,55,97,88)+pl(95,55,60,58)+pl(60,58,20,88)+pl(95,55,20,88,'pg-acc'))
+  },
+  '사이드 플랭크':{
+    target:'복사근 · 코어 · 어깨',
+    steps:['옆으로 누워 전완으로 바닥을 지지','골반을 들어 머리~발목 일직선으로','반대쪽 팔은 천장을 향해 펴기','좌우 번갈아 정해진 시간 버티기'],
+    caution:'골반이 아래로 처지지 않게, 몸이 앞뒤로 돌아가지 않게',
+    svg:poseSVG(ph(103,48)+pl(95,55,97,85)+pl(95,55,65,58)+pl(65,58,25,85)+pl(95,55,100,25))
+  },
+  '종아리 레이즈':{
+    target:'비복근 · 가자미근',
+    steps:['발을 골반너비로 벌리고 서기','발뒤꿈치를 최대한 들어 발끝으로 서기','정점에서 1초 멈추기','천천히 뒤꿈치를 내려 원위치'],
+    caution:'무릎을 펴되 잠그지 않기. 벽이나 의자를 짚어 균형 보조 가능',
+    svg:poseSVG(ph(75,14)+pl(75,22,74,50)+pl(74,50,73,72)+pl(73,72,72,84)+pl(72,84,80,92)+pl(66,92,66,84,'pg-acc'))
+  },
+  '런지':{
+    target:'대퇴사두근 · 둔근 · 햄스트링',
+    steps:['한 발을 크게 앞으로 내딛기','앞무릎·뒷무릎이 각각 90도가 될 때까지 내려가기','앞무릎이 발끝을 넘지 않게','앞발로 밀어 원위치, 좌우 번갈아'],
+    caution:'상체는 곧게, 무게중심이 앞으로 쏠리지 않게',
+    svg:poseSVG(ph(70,14)+pl(70,22,70,50)+pl(70,50,50,68)+pl(50,68,52,90)+pl(70,50,88,74)+pl(88,74,98,88)+pl(70,25,65,45))
+  },
+  '데드버그':{
+    target:'복직근 · 코어 안정성',
+    steps:['누워서 팔은 천장으로, 무릎은 90도로 들어올리기','반대쪽 팔·다리를 동시에 천천히 뻗기','허리가 바닥에서 뜨지 않게 코어로 고정','원위치 후 반대쪽 반복'],
+    caution:'허리가 바닥에서 들리면 뻗는 범위를 줄이기',
+    svg:poseSVG(ph(107,79)+pl(100,85,75,85)+pl(100,85,120,55)+pl(100,85,95,70)+pl(75,85,45,90)+pl(75,85,70,60)+pl(70,60,55,58))
+  },
+  '푸시업':{
+    target:'대흉근 · 삼두근 · 코어',
+    steps:['손을 어깨너비보다 약간 넓게, 몸은 일직선','팔꿈치를 45도로 굽히며 가슴을 바닥 가까이','팔을 펴며 원위치, 몸통은 계속 일직선 유지','호흡은 내려갈 때 들이쉬고 올라올 때 내쉬기'],
+    caution:'엉덩이가 위로 솟거나 허리가 처지지 않게',
+    svg:poseSVG(ph(103,63)+pl(95,70,60,68)+pl(60,68,20,88)+pl(95,70,108,75)+pl(108,75,100,90)+pl(95,70,20,88,'pg-acc'))
+  },
+  '물통 로우':{
+    target:'광배근 · 승모근 · 이두근',
+    steps:['상체를 45도쯤 숙이고 등을 곧게 펴기','물통(또는 무게)을 아래로 늘어뜨리기','팔꿈치를 뒤로 당기며 물통을 옆구리까지','천천히 팔을 펴며 원위치'],
+    caution:'등이 말리지 않게, 반동 없이 팔 힘으로만',
+    svg:poseSVG(ph(105,35)+pl(95,40,70,55)+pl(70,55,68,74)+pl(68,74,65,92)+pl(95,40,100,52)+pl(100,52,88,52))
+  },
+  '파이크 푸시업':{
+    target:'어깨(삼각근) · 삼두근',
+    steps:['엎드려서 엉덩이를 높이 들어 역V자 자세','손은 어깨너비, 시선은 발 쪽','팔꿈치를 굽혀 정수리가 바닥에 가까워지게','팔을 펴며 원위치'],
+    caution:'손목에 통증이 있으면 각도를 줄이기',
+    svg:poseSVG(ph(100,72)+pl(70,40,95,65)+pl(95,65,97,90)+pl(70,40,30,88))
+  },
+  '버드독':{
+    target:'코어 · 척추기립근 · 둔근',
+    steps:['손과 무릎으로 바닥을 짚고 시작(네발기기 자세)','한쪽 팔을 앞으로, 반대쪽 다리를 뒤로 동시에 뻗기','몸통이 좌우로 기울지 않게 수평 유지','원위치 후 반대쪽 반복'],
+    caution:'허리를 젖히지 말고 배에 힘을 유지한 채 뻗기',
+    svg:poseSVG(ph(95,58)+pl(85,60,55,62)+pl(85,60,87,88)+pl(55,62,53,88)+pl(85,60,112,52)+pl(55,62,25,55))
+  },
+  '힙 쓰러스트':{
+    target:'둔근 · 햄스트링',
+    steps:['어깨를 바닥(또는 낮은 소파)에 대고 무릎을 세우기','발뒤꿈치로 밀며 엉덩이를 높이 들어올리기','정점에서 몸통~허벅지가 일직선이 되게','1~2초 멈췄다 천천히 내리기'],
+    caution:'허리를 과하게 젖히지 말고 엉덩이 힘에 집중',
+    svg:poseSVG(ph(107,74)+pl(100,80,62,55)+pl(62,55,45,78)+pl(45,78,35,90)+pl(100,80,45,78,'pg-acc'))
+  },
+  '계단·스텝업':{
+    target:'대퇴사두근 · 둔근',
+    steps:['무릎 높이 정도의 계단이나 낮은 박스 준비','한 발을 완전히 올려 딛고 그 발에 체중 싣기','반대쪽 다리로 밀어 위로 올라서기','한 발씩 내려와 반대쪽 다리로 반복'],
+    caution:'반동으로 튀어 오르지 말고 미는 다리 힘으로 천천히',
+    svg:poseSVG(prect(20,70,30,22)+ph(66,13)+pl(66,20,65,45)+pl(65,45,55,58)+pl(55,58,45,70)+pl(65,45,35,80)+pl(35,80,20,90))
+  },
+  '점프스쿼트':{
+    target:'대퇴사두근 · 둔근 · 폭발력',
+    steps:['일반 스쿼트 자세로 앉기','팔을 뒤에서 앞으로 스윙하며 힘차게 점프','공중에서 몸을 편 뒤 무릎을 살짝 굽혀 착지 준비','착지와 동시에 부드럽게 스쿼트 자세로 흡수'],
+    caution:'착지 시 무릎을 굽혀 충격 흡수, 소음/층간소음 주의',
+    svg:poseSVG(ph(75,10)+pl(75,18,72,35)+pl(72,35,65,42)+pl(65,42,60,50)+pl(75,18,85,5)+pl(60,70,60,90,'pg-acc')+pl(50,70,50,90,'pg-acc'))
+  },
+  '버피':{
+    target:'전신 · 심폐지구력',
+    steps:['서 있다가 스쿼트로 앉으며 손을 바닥에','두 발을 뒤로 차서 플랭크 자세','푸시업(생략 가능) 후 두 발을 다시 앞으로','일어서며 위로 점프'],
+    caution:'속도보다 정확한 자세 우선, 무릎/허리 무리되면 스텝 버전으로',
+    svg:poseSVG(ph(104,48)+pl(95,55,60,58)+pl(60,58,20,88)+pl(95,55,97,88)+pl(60,70,60,90,'pg-acc'))
+  },
+  '마운틴클라이머':{
+    target:'코어 · 심폐지구력 · 하체',
+    steps:['하이 플랭크(팔을 편 플랭크) 자세로 시작','한쪽 무릎을 가슴 쪽으로 빠르게 당기기','원위치와 동시에 반대쪽 무릎을 당기기','일정한 리듬으로 빠르게 반복'],
+    caution:'엉덩이가 너무 위로 솟지 않게, 어깨 위에 손목 위치 유지',
+    svg:poseSVG(ph(104,48)+pl(95,55,97,90)+pl(95,55,65,58)+pl(65,58,72,68)+pl(72,68,80,75)+pl(65,58,40,80)+pl(40,80,20,88))
+  },
+  '불가리안 스플릿':{
+    target:'대퇴사두근 · 둔근',
+    steps:['뒷발을 낮은 의자나 벤치 위에 올리기','앞다리 무릎을 90도로 굽히며 내려가기','앞무릎이 발끝을 넘지 않게','앞발로 밀어 올라오기, 좌우 번갈아'],
+    caution:'상체를 곧게 세우고 앞다리에 체중 대부분 싣기',
+    svg:poseSVG(prect(95,55,20,8)+ph(66,15)+pl(66,22,65,50)+pl(65,50,48,68)+pl(48,68,50,90)+pl(65,50,85,68)+pl(85,68,100,58))
+  }
+};
+function resolveGuideKeys(label){
+  if(GUIDE[label]) return [label];
+  const parts=label.split(/[↔·]/).map(s=>s.trim());
+  if(parts.length>1){
+    const keys=parts.map(p=>GUIDE[p]?p:Object.keys(GUIDE).find(k=>k.includes(p)||p.includes(k))).filter(Boolean);
+    if(keys.length) return keys;
+  }
+  const fuzzy=Object.keys(GUIDE).find(k=>label.includes(k));
+  return fuzzy?[fuzzy]:[];
+}
+function openPoseGuide(label){
+  const keys=resolveGuideKeys(label);
+  document.getElementById('mTitle').textContent=label+' 자세 가이드';
+  const body=document.getElementById('mBody'); body.innerHTML='';
+  if(!keys.length){body.innerHTML='<div class="empty">가이드가 준비되지 않았습니다.</div>';}
+  keys.forEach(k=>{
+    const g=GUIDE[k];
+    const card=document.createElement('div'); card.className='pose-card';
+    card.innerHTML=`<div class="pose-name">${k}</div>${g.svg}
+      <div class="pose-target">자극 부위 · ${g.target}</div>
+      <ol class="pose-steps">${g.steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+      <div class="pose-caution"><b>주의</b> — ${g.caution}</div>`;
+    body.appendChild(card);
+  });
+  document.getElementById('modal').classList.add('on');
+}
+
 /* ===== today log ===== */
 const getLog=()=>DB.get('log:'+today(),{b:[],l:[],d:[],s:[]});
 const setLog=v=>{DB.set('log:'+today(),v);renderToday();};
@@ -450,9 +609,10 @@ function renderWorkout(){
   const h=document.createElement('div');h.className='meal-name';h.style.marginBottom='7px';h.textContent=plan[0];list.appendChild(h);
   plan[1].forEach((e,i)=>{
     const r=document.createElement('div');r.className='entry';
-    r.innerHTML=`<span class="nm">${done[i]?'☑':'☐'} ${e[0]}</span><span class="mc">${e[1]}</span>`;
+    r.innerHTML=`<span class="nm">${done[i]?'☑':'☐'} ${e[0]}</span><span style="display:flex;align-items:center;gap:6px;"><button type="button" class="pg-btn">자세</button><span class="mc">${e[1]}</span></span>`;
     r.style.cursor='pointer';
     r.addEventListener('click',()=>{const c=DB.get('wo:'+today(),{});c[i]=!c[i];DB.set('wo:'+today(),c);renderWorkout();});
+    r.querySelector('.pg-btn').addEventListener('click',ev=>{ev.stopPropagation();openPoseGuide(e[0]);});
     list.appendChild(r);
   });
 }
