@@ -306,6 +306,19 @@ const WD=['일','월','화','수','목','금','토'];
 const today=()=>key(new Date());
 const MEALS=[['b','아침'],['l','점심'],['d','저녁'],['s','간식']];
 
+/* ===== 구내식당 구성요소 =====
+   급식·백반은 성분표가 없으므로 반찬 종류별 평균치를 한 번만 등록해두고,
+   매일 수량(0.5/1/1.5)만 조절해 기록한다. 새 식품을 매일 등록하지 않기 위한 것. */
+const CAFETERIA=[
+  {n:'구내식당 밥 1공기',p:6,c:300,s:0,v:'ok',f:1},
+  {n:'구내식당 국 1그릇',p:3,c:60,s:0,v:'ok',f:1},
+  {n:'구내식당 고기반찬 1접시',p:15,c:220,s:1,v:'ok',f:1},
+  {n:'구내식당 튀김·전 1조각',p:7,c:150,s:1,v:'warn',f:1},
+  {n:'구내식당 나물·야채반찬',p:2,c:50,s:1,v:'ok',f:1},
+  {n:'구내식당 면·잡채반찬',p:4,c:130,s:3,v:'warn',f:1},
+  {n:'구내식당 김치·절임',p:1,c:15,s:1,v:'ok',f:1}
+];
+
 /* ===== seed foods ===== */
 const SEED=[
   {n:'삶은계란 2개',p:12,c:140,s:0,v:'ok',f:1},
@@ -322,7 +335,8 @@ const SEED=[
   {n:'편의점 단백질 도시락',p:32,c:520,s:8,v:'ok',f:0},
   {n:'견과류 소포장 25g',p:5,c:150,s:2,v:'warn',f:0},
   {n:'소주 1병 (제로슈가)',p:0,c:320,s:0,v:'warn',f:0},
-  {n:'쿠키링 요거트 131g',p:5,c:140,s:17,v:'no',f:0}
+  {n:'쿠키링 요거트 131g',p:5,c:140,s:17,v:'no',f:0},
+  ...CAFETERIA
 ];
 function initFoods(){
   if(DB.get('foodsInit',false)) return;
@@ -330,14 +344,22 @@ function initFoods(){
   DB.set('foodsInit',true);
 }
 function migrateFoods(){
-  if(DB.get('foodsFix1',false)) return;
-  const FIX={
-    '무가당 그릭요거트 100g':{p:7,c:90,s:1.8,v:'ok'},
-    '슬라이스 치즈 2장':{p:8,c:90,s:0.4,v:'warn'}
-  };
-  const foods=getFoods().map(f=>FIX[f.n]?{...f,...FIX[f.n]}:f);
-  setFoods(foods);
-  DB.set('foodsFix1',true);
+  if(!DB.get('foodsFix1',false)){
+    const FIX={
+      '무가당 그릭요거트 100g':{p:7,c:90,s:1.8,v:'ok'},
+      '슬라이스 치즈 2장':{p:8,c:90,s:0.4,v:'warn'}
+    };
+    setFoods(getFoods().map(f=>FIX[f.n]?{...f,...FIX[f.n]}:f));
+    DB.set('foodsFix1',true);
+  }
+  if(!DB.get('foodsCafeteria',false)){
+    const fs=getFoods();
+    CAFETERIA.forEach(c=>{
+      if(!fs.find(x=>x.n===c.n)) fs.push({...c,id:'f'+Date.now()+Math.random().toString(36).slice(2,6)});
+    });
+    setFoods(fs);
+    DB.set('foodsCafeteria',true);
+  }
 }
 const getFoods=()=>DB.get('foods',[]);
 const setFoods=v=>DB.set('foods',v);
@@ -610,7 +632,9 @@ function renderToday(){
     btn.addEventListener('click',()=>openPicker(k,label));
     const cbtn=document.createElement('button'); cbtn.className='add-btn'; cbtn.style.marginTop='0'; cbtn.style.color='var(--amber)'; cbtn.style.borderColor='var(--amber-soft)'; cbtn.textContent='★ 추천 조합';
     cbtn.addEventListener('click',()=>openCombos(k,label));
-    btnRow.appendChild(btn); btnRow.appendChild(cbtn);
+    const qbtn=document.createElement('button'); qbtn.className='add-btn'; qbtn.style.marginTop='0'; qbtn.textContent='✎ 직접';
+    qbtn.addEventListener('click',()=>openQuick(k,label));
+    btnRow.appendChild(btn); btnRow.appendChild(cbtn); btnRow.appendChild(qbtn);
     div.appendChild(btnRow);
     box.appendChild(div);
   });
@@ -674,6 +698,33 @@ function openQty(mealKey,f){
     l[mealKey].push({n:f.n,p:f.p,c:f.c,s:f.s,q});
     setLog(l); document.getElementById('modal').classList.remove('on');
   };
+}
+function openQuick(mealKey,label){
+  const m=document.getElementById('modal');
+  document.getElementById('mTitle').textContent=label+' 직접 입력';
+  const body=document.getElementById('mBody');
+  body.innerHTML=`<p class="sub">이번 기록에만 사용합니다. 내 식품 목록에는 남지 않습니다.</p>
+    <div class="field"><span>이름</span><input type="text" id="qkN" placeholder="구내식당 점심"></div>
+    <div class="field"><span>단백질 (g)</span><input type="number" id="qkP" step="0.1" placeholder="38"></div>
+    <div class="field"><span>칼로리</span><input type="number" id="qkC" placeholder="900"></div>
+    <div class="field"><span>당류 (g)</span><input type="number" id="qkS" step="0.1" placeholder="7"></div>
+    <button class="btn" id="qkOk">기록</button>
+    <div class="msg" id="qkMsg"></div>`;
+  document.getElementById('qkOk').onclick=()=>{
+    const n=document.getElementById('qkN').value.trim();
+    const msg=document.getElementById('qkMsg');
+    if(!n){msg.textContent='이름을 입력하세요';msg.style.color='var(--warn)';return;}
+    const l=getLog(); l[mealKey]=l[mealKey]||[];
+    l[mealKey].push({
+      n,
+      p:parseFloat(document.getElementById('qkP').value)||0,
+      c:parseFloat(document.getElementById('qkC').value)||0,
+      s:parseFloat(document.getElementById('qkS').value)||0,
+      q:1
+    });
+    setLog(l); m.classList.remove('on');
+  };
+  m.classList.add('on');
 }
 function openCombos(mealKey,label){
   const m=document.getElementById('modal');
