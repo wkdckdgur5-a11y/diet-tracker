@@ -224,10 +224,9 @@
   <div id="foodAddWrap" style="display:none;">
     <div class="card">
       <h2>직접 입력</h2>
-      <p class="sub">제품 성분표를 보고 그대로 입력하세요. 1회 섭취량 기준으로 적으면 됩니다.</p>
+      <p class="sub">제품 성분표를 보고 그대로 입력하세요. 1회 섭취량 기준으로 적으면 됩니다. 탄수화물은 칼로리·단백질·지방으로 자동 계산됩니다.</p>
       <div class="field"><span>이름</span><input type="text" id="fName" placeholder="삶은계란 2개"></div>
       <div class="field"><span>칼로리</span><input type="number" id="fC" placeholder="140"></div>
-      <div class="field"><span>탄수화물 (g)</span><input type="number" id="fCarb" step="0.1" placeholder="1"></div>
       <div class="field"><span>단백질 (g)</span><input type="number" id="fP" step="0.1" placeholder="12"></div>
       <div class="field"><span>지방 (g)</span><input type="number" id="fFat" step="0.1" placeholder="10"></div>
       <div class="field"><span>당류 (g)</span><input type="number" id="fS" step="0.1" placeholder="0"></div>
@@ -443,67 +442,72 @@ function migrateFoods(){
 const getFoods=()=>DB.get('foods',[]);
 const setFoods=v=>DB.set('foods',v);
 
+/* 칼로리 = 탄수화물×4 + 단백질×4 + 지방×9 이므로, 칼로리·단백질·지방만 알면
+   탄수화물은 계산으로 나온다. 입력 항목을 하나 줄이기 위한 것. */
+const deriveCarb=(c,p,fat)=>Math.max(0,Math.round((c-(p||0)*4-(fat||0)*9)/4));
+
 /* ===== 추천 조합 ===== */
 const COMBOS={
   b:[
     {name:'A. 기본형',items:[
-      {n:'삶은계란 3개',p:18,c:210,s:0,carb:1.5,fat:15},
-      {n:'통밀식빵 1쪽',p:4,c:90,s:2,carb:15,fat:2,q:2},
-      {n:'바나나 1개',p:1,c:100,s:14,carb:27,fat:0.5}
+      {n:'삶은계란 3개',p:18,c:210,s:0,fat:15},
+      {n:'통밀식빵 1쪽',p:4,c:90,s:2,fat:2,q:2},
+      {n:'바나나 1개',p:1,c:100,s:14,fat:0.5}
     ]},
     {name:'B. 요거트형',items:[
-      {n:'삶은계란 2개',p:12,c:140,s:0,carb:1,fat:10},
-      {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,carb:5,fat:4.8},
-      {n:'오트밀 40g',p:5,c:150,s:0.5,carb:27,fat:3},
-      {n:'바나나 1개',p:1,c:100,s:14,carb:27,fat:0.5}
+      {n:'삶은계란 2개',p:12,c:140,s:0,fat:10},
+      {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,fat:4.8},
+      {n:'오트밀 40g',p:5,c:150,s:0.5,fat:3},
+      {n:'바나나 1개',p:1,c:100,s:14,fat:0.5}
     ]},
     {name:'C. 시간 없는 날',items:[
-      {n:'무가당 두유 1팩',p:8,c:110,s:1,carb:5,fat:6},
-      {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,carb:5,fat:4.8},
-      {n:'통밀크래커 3~4장',p:3,c:80,s:2,carb:14,fat:2},
-      {n:'바나나 1개',p:1,c:100,s:14,carb:27,fat:0.5}
+      {n:'무가당 두유 1팩',p:8,c:110,s:1,fat:6},
+      {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,fat:4.8},
+      {n:'통밀크래커 3~4장',p:3,c:80,s:2,fat:2},
+      {n:'바나나 1개',p:1,c:100,s:14,fat:0.5}
     ]}
   ],
   l:[
     {name:'A. 백반형',items:[
-      {n:'백반 (밥 2/3 + 반찬 2가지)',p:35,c:600,s:5,carb:75,fat:18}
+      {n:'백반 (밥 2/3 + 반찬 2가지)',p:35,c:600,s:5,fat:18}
     ]},
     {name:'B. 편의점형',items:[
-      {n:'편의점 단백질 도시락',p:32,c:520,s:8,carb:60,fat:15},
-      {n:'삶은계란 1개',p:6,c:70,s:0,carb:0.5,fat:5}
+      {n:'편의점 단백질 도시락',p:32,c:520,s:8,fat:15},
+      {n:'삶은계란 1개',p:6,c:70,s:0,fat:5}
     ]},
     {name:'C. 외식',items:[
-      {n:'국밥 · 백반 · 쌈밥류',p:35,c:650,s:5,carb:80,fat:20}
+      {n:'국밥 · 백반 · 쌈밥류',p:35,c:650,s:5,fat:20}
     ]}
   ],
   d:[
     {name:'A. 닭가슴살형',items:[
-      {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1,carb:1,fat:2.5},
-      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,carb:32,fat:1},
-      {n:'냉동 브로콜리',p:2,c:40,s:2,carb:6,fat:0.5}
+      {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1,fat:2.5},
+      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,fat:1},
+      {n:'냉동 브로콜리',p:2,c:40,s:2,fat:0.5}
     ]},
     {name:'B. 두부·생선형',items:[
-      {n:'부침두부 반 모',p:10,c:120,s:1,carb:3,fat:7},
-      {n:'고등어구이 간편팩',p:20,c:180,s:0,carb:0,fat:11},
-      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,carb:32,fat:1}
+      {n:'부침두부 반 모',p:10,c:120,s:1,fat:7},
+      {n:'고등어구이 간편팩',p:20,c:180,s:0,fat:11},
+      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,fat:1}
     ]},
     {name:'C. 늦게 귀가한 날',items:[
-      {n:'삶은계란 3개',p:18,c:210,s:0,carb:1.5,fat:15},
-      {n:'참치캔 소 (기름제거)',p:15,c:110,s:0,carb:0,fat:5},
-      {n:'방울토마토 한 컵',p:1,c:30,s:5,carb:6,fat:0}
+      {n:'삶은계란 3개',p:18,c:210,s:0,fat:15},
+      {n:'참치캔 소 (기름제거)',p:15,c:110,s:0,fat:5},
+      {n:'방울토마토 한 컵',p:1,c:30,s:5,fat:0}
     ]}
   ],
   s:[
     {name:'단백질 간식',items:[
-      {n:'견과류 소포장 25g',p:5,c:150,s:2,carb:5,fat:13}
+      {n:'견과류 소포장 25g',p:5,c:150,s:2,fat:13}
     ]},
     {name:'단 게 당길 때',items:[
-      {n:'다크초콜릿 2~3조각',p:2,c:90,s:6,carb:9,fat:6}
+      {n:'다크초콜릿 2~3조각',p:2,c:90,s:6,fat:6}
     ]}
   ]
 };
-/* 조합 항목의 q는 인분 수(빵 2쪽 등). 없으면 1. */
-function comboTotal(combo){return combo.items.reduce((a,i)=>{const q=i.q||1;return {p:a.p+i.p*q,c:a.c+i.c*q,s:a.s+i.s*q,carb:a.carb+i.carb*q,fat:a.fat+i.fat*q};},{p:0,c:0,s:0,carb:0,fat:0});}
+/* 조합 항목의 q는 인분 수(빵 2쪽 등). 없으면 1.
+   탄수화물은 저장해두지 않고 매번 deriveCarb로 계산 — 값을 두 곳에서 관리하지 않기 위함. */
+function comboTotal(combo){return combo.items.reduce((a,i)=>{const q=i.q||1;return {p:a.p+i.p*q,c:a.c+i.c*q,s:a.s+i.s*q,carb:a.carb+deriveCarb(i.c,i.p,i.fat)*q,fat:a.fat+i.fat*q};},{p:0,c:0,s:0,carb:0,fat:0});}
 
 /* ===== program ===== */
 const PROGRAM=[
@@ -862,11 +866,10 @@ function openQuick(mealKey,label){
   document.getElementById('mTitle').textContent=label+' 직접 입력';
   const body=document.getElementById('mBody');
   const g=mealGoal(mealKey);
-  body.innerHTML=`<p class="sub">이번 기록에만 사용합니다. 내 식품 목록에는 남지 않습니다.</p>
+  body.innerHTML=`<p class="sub">이번 기록에만 사용합니다. 내 식품 목록에는 남지 않습니다. 탄수화물은 칼로리·단백질·지방으로 자동 계산됩니다.</p>
     <div class="note">이 끼니 권장: ${g.c}kcal · 탄 ${g.carb}g · 단 ${g.p}g · 지 ${g.fat}g</div>
     <div class="field"><span>이름</span><input type="text" id="qkN" placeholder="구내식당 점심"></div>
     <div class="field"><span>칼로리</span><input type="number" id="qkC" placeholder="${g.c}"></div>
-    <div class="field"><span>탄수화물 (g)</span><input type="number" id="qkCarb" step="0.1" placeholder="${g.carb}"></div>
     <div class="field"><span>단백질 (g)</span><input type="number" id="qkP" step="0.1" placeholder="${g.p}"></div>
     <div class="field"><span>지방 (g)</span><input type="number" id="qkFat" step="0.1" placeholder="${g.fat}"></div>
     <div class="field"><span>당류 (g)</span><input type="number" id="qkS" step="0.1" placeholder="0"></div>
@@ -877,13 +880,13 @@ function openQuick(mealKey,label){
     const msg=document.getElementById('qkMsg');
     if(!n){msg.textContent='이름을 입력하세요';msg.style.color='var(--warn)';return;}
     const l=getLog(); l[mealKey]=l[mealKey]||[];
+    const c=parseFloat(document.getElementById('qkC').value)||0;
+    const p=parseFloat(document.getElementById('qkP').value)||0;
+    const fat=parseFloat(document.getElementById('qkFat').value)||0;
     l[mealKey].push({
-      n,
-      p:parseFloat(document.getElementById('qkP').value)||0,
-      c:parseFloat(document.getElementById('qkC').value)||0,
+      n, p, c, fat,
       s:parseFloat(document.getElementById('qkS').value)||0,
-      carb:parseFloat(document.getElementById('qkCarb').value)||0,
-      fat:parseFloat(document.getElementById('qkFat').value)||0,
+      carb:deriveCarb(c,p,fat),
       q:1
     });
     setLog(l); m.classList.remove('on');
@@ -910,11 +913,11 @@ function openCombos(mealKey,label){
     abtn.addEventListener('click',()=>{
       const fs=getFoods();
       combo.items.forEach(i=>{
-        if(!fs.find(x=>x.n===i.n)){ fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:i.n,p:i.p,c:i.c,s:i.s,carb:i.carb,fat:i.fat,v:'ok',f:1}); }
+        if(!fs.find(x=>x.n===i.n)){ fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:i.n,p:i.p,c:i.c,s:i.s,carb:deriveCarb(i.c,i.p,i.fat),fat:i.fat,v:'ok',f:1}); }
       });
       setFoods(fs);
       const l=getLog(); l[mealKey]=l[mealKey]||[];
-      combo.items.forEach(i=>l[mealKey].push({n:i.n,p:i.p,c:i.c,s:i.s,carb:i.carb,fat:i.fat,q:i.q||1}));
+      combo.items.forEach(i=>l[mealKey].push({n:i.n,p:i.p,c:i.c,s:i.s,carb:deriveCarb(i.c,i.p,i.fat),fat:i.fat,q:i.q||1}));
       setLog(l);
       document.getElementById('modal').classList.remove('on');
     });
@@ -966,9 +969,12 @@ document.getElementById('btnAddFood').addEventListener('click',()=>{
   const m=document.getElementById('addMsg');
   if(!n){m.textContent='이름을 입력하세요';m.style.color='var(--warn)';return;}
   const fs=getFoods();
-  fs.push({id:'f'+Date.now(),n,p:parseFloat(document.getElementById('fP').value)||0,c:parseFloat(document.getElementById('fC').value)||0,s:parseFloat(document.getElementById('fS').value)||0,carb:parseFloat(document.getElementById('fCarb').value)||0,fat:parseFloat(document.getElementById('fFat').value)||0,v:document.getElementById('fV').value,f:1});
+  const p=parseFloat(document.getElementById('fP').value)||0;
+  const c=parseFloat(document.getElementById('fC').value)||0;
+  const fat=parseFloat(document.getElementById('fFat').value)||0;
+  fs.push({id:'f'+Date.now(),n,p,c,fat,s:parseFloat(document.getElementById('fS').value)||0,carb:deriveCarb(c,p,fat),v:document.getElementById('fV').value,f:1});
   setFoods(fs);
-  ['fName','fP','fC','fS','fCarb','fFat'].forEach(i=>document.getElementById(i).value='');
+  ['fName','fP','fC','fS','fFat'].forEach(i=>document.getElementById(i).value='');
   m.textContent='등록되었습니다';m.style.color='var(--ok)';
   setTimeout(()=>m.textContent='',1800);
 });
@@ -983,7 +989,8 @@ document.getElementById('btnPaste').addEventListener('click',()=>{
     const fs=getFoods(); let cnt=0;
     arr.forEach(o=>{
       if(!o||!o.n) return;
-      fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:String(o.n),p:+o.p||0,c:+o.c||0,s:+o.s||0,carb:+o.carb||0,fat:+o.fat||0,v:['ok','warn','no'].includes(o.v)?o.v:'ok',f:1});
+      const p=+o.p||0,c=+o.c||0,fat=+o.fat||0;
+      fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:String(o.n),p,c,fat,s:+o.s||0,carb:(o.carb!=null?+o.carb:deriveCarb(c,p,fat)),v:['ok','warn','no'].includes(o.v)?o.v:'ok',f:1});
       cnt++;
     });
     setFoods(fs);
