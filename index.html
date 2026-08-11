@@ -68,6 +68,7 @@
   .past-note{background:var(--amber-soft);border-left:3px solid var(--amber);padding:8px 11px;font-size:12px;margin-top:9px;}
   .hist-row.tap{cursor:pointer;}
   .hist-row.tap:active{background:var(--bg);}
+  .hist-row.sel{background:var(--amber-soft);box-shadow:inset 3px 0 0 var(--amber);padding-left:8px;}
 
   /* meal blocks */
   .meal{border-top:1px solid var(--line);padding:11px 0;}
@@ -164,12 +165,12 @@
 <div class="view active" id="v-today">
   <div class="card">
     <div class="datebar">
-      <button type="button" id="dPrev" aria-label="이전 날">‹</button>
-      <input type="date" id="dPick">
-      <button type="button" id="dNext" aria-label="다음 날">›</button>
-      <button type="button" class="wide" id="dToday">오늘</button>
+      <button type="button" data-d="prev" aria-label="이전 날">‹</button>
+      <input type="date" data-d="pick">
+      <button type="button" data-d="next" aria-label="다음 날">›</button>
+      <button type="button" class="wide" data-d="today">오늘</button>
     </div>
-    <div class="past-note" id="pastNote" style="display:none;">지난 날짜를 보고 있습니다. 아래에서 추가하는 기록은 모두 이 날짜에 저장됩니다.</div>
+    <div class="past-note" data-d="note" style="display:none;">지난 날짜를 보고 있습니다. 아래에서 추가하는 기록은 모두 이 날짜에 저장됩니다.</div>
   </div>
 
   <div class="card">
@@ -252,6 +253,16 @@
 
 <!-- ============ 기록 ============ -->
 <div class="view" id="v-hist">
+  <div class="card">
+    <div class="datebar">
+      <button type="button" data-d="prev" aria-label="이전 날">‹</button>
+      <input type="date" data-d="pick">
+      <button type="button" data-d="next" aria-label="다음 날">›</button>
+      <button type="button" class="wide" data-d="today">오늘</button>
+    </div>
+    <div class="past-note" data-d="note" style="display:none;">지난 날짜에 기록 중입니다. 아래 체중·허리둘레는 이 날짜로 저장됩니다.</div>
+  </div>
+
   <div class="card">
     <h2>체중 · 허리둘레</h2>
     <p class="sub">주 1회, 같은 요일 기상 직후 공복에 재세요.</p>
@@ -763,11 +774,19 @@ function renderHeader(){
   document.getElementById('topBadge').textContent=w===null?'시작 전':(ph?`${w}주차 · P${PROGRAM.indexOf(ph)+1}`:`${w}주차 완료`);
   document.getElementById('intakeTitle').textContent=isToday()?'오늘의 섭취':'이 날의 섭취';
   document.getElementById('woTitle').textContent=isToday()?'오늘의 운동':'이 날의 운동';
-  document.getElementById('pastNote').style.display=isToday()?'none':'block';
-  const pick=document.getElementById('dPick');
-  pick.max=today(); pick.value=dk;
-  document.getElementById('dNext').disabled=isToday();
-  document.getElementById('dToday').disabled=isToday();
+  syncDateBars();
+}
+/* 오늘 탭과 기록 탭이 같은 날짜를 공유한다. 두 탭 모두 날짜 바를 눈에 보이게 두어
+   한쪽에서 고른 날짜가 다른 쪽에 조용히 적용되는 일이 없게 한다. */
+function syncDateBars(){
+  const dk=viewDate(), t=isToday();
+  document.querySelectorAll('.datebar').forEach(bar=>{
+    const pick=bar.querySelector('[data-d="pick"]');
+    pick.max=today(); pick.value=dk;
+    bar.querySelector('[data-d="next"]').disabled=t;
+    bar.querySelector('[data-d="today"]').disabled=t;
+  });
+  document.querySelectorAll('[data-d="note"]').forEach(n=>n.style.display=t?'none':'block');
 }
 function shiftDate(n){
   const d=new Date(viewDate()+'T00:00:00');
@@ -777,7 +796,13 @@ function shiftDate(n){
 function setViewDate(dk){
   if(dk>today()) dk=today();
   pinnedDate=(dk===today())?null:dk;
-  renderToday();
+  renderToday(); loadBodyInputs(); renderHist();
+}
+/* 선택한 날짜에 이미 저장된 체중·허리둘레가 있으면 입력칸에 채워 수정할 수 있게 한다. */
+function loadBodyInputs(){
+  const b=DB.get('body:'+viewDate(),null);
+  document.getElementById('inW').value=b&&b.w?b.w:'';
+  document.getElementById('inC').value=b&&b.c?b.c:'';
 }
 
 function renderWorkout(){
@@ -899,11 +924,13 @@ function openCombos(mealKey,label){
   m.classList.add('on');
 }
 /* ===== 날짜 이동 ===== */
-document.getElementById('dPrev').addEventListener('click',()=>shiftDate(-1));
-document.getElementById('dNext').addEventListener('click',()=>shiftDate(1));
-document.getElementById('dToday').addEventListener('click',()=>setViewDate(today()));
-document.getElementById('dPick').addEventListener('change',e=>{
-  if(e.target.value) setViewDate(e.target.value); else renderToday();
+document.querySelectorAll('.datebar').forEach(bar=>{
+  bar.querySelector('[data-d="prev"]').addEventListener('click',()=>shiftDate(-1));
+  bar.querySelector('[data-d="next"]').addEventListener('click',()=>shiftDate(1));
+  bar.querySelector('[data-d="today"]').addEventListener('click',()=>setViewDate(today()));
+  bar.querySelector('[data-d="pick"]').addEventListener('change',e=>{
+    if(e.target.value) setViewDate(e.target.value); else syncDateBars();
+  });
 });
 
 document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.remove('on');
@@ -972,8 +999,10 @@ function renderHist(){
   const bl=document.getElementById('bodyList'); bl.innerHTML='';
   if(!logs.length) bl.innerHTML='<div class="empty">기록이 없습니다.</div>';
   logs.slice(0,10).forEach(l=>{
-    const r=document.createElement('div');r.className='hist-row';
+    const r=document.createElement('div');r.className='hist-row tap'+(l.d===viewDate()?' sel':'');
     r.innerHTML=`<span class="hist-date">${l.d}</span><span class="mono" style="font-size:12.5px">${l.v.w?l.v.w+'kg':'—'} · ${l.v.c?l.v.c+'cm':'—'}</span>`;
+    r.title='이 날짜 불러오기';
+    r.addEventListener('click',()=>setViewDate(l.d));
     bl.appendChild(r);
   });
   const ph=document.getElementById('pHist'); ph.innerHTML='';
@@ -982,7 +1011,7 @@ function renderHist(){
   const tP=DB.get('tP',140);
   dl.forEach(l=>{
     const t=totals(l.v);
-    const r=document.createElement('div');r.className='hist-row tap';
+    const r=document.createElement('div');r.className='hist-row tap'+(l.d===viewDate()?' sel':'');
     const pctW=Math.min(100,t.p/tP*100);
     r.innerHTML=`<span class="hist-date">${l.d.slice(5)}</span>
       <span style="flex:1;margin:0 10px;"><span style="display:block;height:7px;background:var(--line);position:relative"><i style="position:absolute;left:0;top:0;bottom:0;width:${pctW}%;background:${t.p>=tP?'var(--ok)':'var(--teal)'}"></i></span></span>
@@ -998,8 +1027,8 @@ document.getElementById('btnBody').addEventListener('click',()=>{
   const m=document.getElementById('bodyMsg');
   if(isNaN(w)&&isNaN(c)){m.textContent='값을 입력하세요';m.style.color='var(--warn)';return;}
   const r={};if(!isNaN(w))r.w=w;if(!isNaN(c))r.c=c;
-  DB.set('body:'+today(),r);
-  m.textContent='저장됨';m.style.color='var(--ok)';setTimeout(()=>m.textContent='',1800);
+  DB.set('body:'+viewDate(),r);
+  m.textContent=isToday()?'저장됨':viewDate()+'에 저장됨';m.style.color='var(--ok)';setTimeout(()=>m.textContent='',1800);
   renderHist();
 });
 
@@ -1113,8 +1142,7 @@ function initUI(){
   document.getElementById('tCarb').value=DB.get('tCarb',215);
   document.getElementById('tFat').value=DB.get('tFat',65);
   document.getElementById('inStart').value=DB.get('start',today());
-  const b=DB.get('body:'+today(),null);
-  if(b){if(b.w)document.getElementById('inW').value=b.w;if(b.c)document.getElementById('inC').value=b.c;}
+  loadBodyInputs();
   document.getElementById('nEnable').value=DB.get('notifyOn',false)?'1':'0';
   document.getElementById('nWorkout').value=DB.get('notifyWorkout','19:30');
   document.getElementById('nLog').value=DB.get('notifyLog','22:00');
