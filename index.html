@@ -253,8 +253,8 @@
   <div class="card">
     <h2>목표값</h2>
     <div class="field"><span>칼로리</span><input type="number" id="tC" value="2000"></div>
-    <div class="field"><span>탄수화물 (g)</span><input type="number" id="tCarb" value="220"></div>
-    <div class="field"><span>단백질 (g)</span><input type="number" id="tP" value="135"></div>
+    <div class="field"><span>탄수화물 (g)</span><input type="number" id="tCarb" value="215"></div>
+    <div class="field"><span>단백질 (g)</span><input type="number" id="tP" value="140"></div>
     <div class="field"><span>지방 (g)</span><input type="number" id="tFat" value="65"></div>
     <div class="field"><span>당류 상한 (g)</span><input type="number" id="tS" value="50"></div>
     <button class="btn" id="btnTarget">목표 저장</button>
@@ -660,16 +660,16 @@ function mealGoal(k){
   const r=MEAL_RATIO[k]||0;
   return {
     c:Math.round(DB.get('tC',2000)*r),
-    carb:Math.round(DB.get('tCarb',220)*r),
-    p:Math.round(DB.get('tP',135)*r),
+    carb:Math.round(DB.get('tCarb',215)*r),
+    p:Math.round(DB.get('tP',140)*r),
     fat:Math.round(DB.get('tFat',65)*r)
   };
 }
 
 function renderToday(){
   const log=getLog(), t=totals(log);
-  const tP=DB.get('tP',135),tC=DB.get('tC',2000),tS=DB.get('tS',50);
-  const tCarb=DB.get('tCarb',220),tFat=DB.get('tFat',65);
+  const tP=DB.get('tP',140),tC=DB.get('tC',2000),tS=DB.get('tS',50);
+  const tCarb=DB.get('tCarb',215),tFat=DB.get('tFat',65);
   document.getElementById('gC').textContent=`${t.c} / ${tC}`;
   document.getElementById('gCarb').textContent=`${t.carb}/${tCarb}g`;
   document.getElementById('gP').textContent=`${t.p}/${tP}g`;
@@ -928,7 +928,7 @@ function renderHist(){
   const ph=document.getElementById('pHist'); ph.innerHTML='';
   const dl=DB.keys('log:').map(k=>({d:k.replace('log:',''),v:DB.get(k,{})})).sort((a,b)=>b.d.localeCompare(a.d)).slice(0,14);
   if(!dl.length){ph.innerHTML='<div class="empty">기록이 없습니다.</div>';return;}
-  const tP=DB.get('tP',135);
+  const tP=DB.get('tP',140);
   dl.forEach(l=>{
     const t=totals(l.v);
     const r=document.createElement('div');r.className='hist-row';
@@ -952,10 +952,10 @@ document.getElementById('btnBody').addEventListener('click',()=>{
 
 /* ===== settings ===== */
 document.getElementById('btnTarget').addEventListener('click',()=>{
-  DB.set('tP',parseInt(document.getElementById('tP').value)||135);
+  DB.set('tP',parseInt(document.getElementById('tP').value)||140);
   DB.set('tC',parseInt(document.getElementById('tC').value)||2000);
   DB.set('tS',parseInt(document.getElementById('tS').value)||50);
-  DB.set('tCarb',parseInt(document.getElementById('tCarb').value)||220);
+  DB.set('tCarb',parseInt(document.getElementById('tCarb').value)||215);
   DB.set('tFat',parseInt(document.getElementById('tFat').value)||65);
   const m=document.getElementById('tMsg');m.textContent='저장됨';m.style.color='var(--ok)';
   setTimeout(()=>m.textContent='',1800); renderToday();
@@ -969,7 +969,7 @@ document.getElementById('btnStart').addEventListener('click',()=>{
 document.getElementById('btnExport').addEventListener('click',()=>{
   const out={};['log:','body:','wo:'].forEach(p=>DB.keys(p).forEach(k=>out[k]=DB.get(k,null)));
   out.foods=getFoods(); out.start=DB.get('start',null);
-  out.tP=DB.get('tP',135);out.tC=DB.get('tC',2000);out.tS=DB.get('tS',50);
+  out.tP=DB.get('tP',140);out.tC=DB.get('tC',2000);out.tS=DB.get('tS',50);out.tCarb=DB.get('tCarb',215);out.tFat=DB.get('tFat',65);
   const b=document.getElementById('dataBox');b.style.display='block';b.value=JSON.stringify(out);b.select();
   const m=document.getElementById('dMsg');m.textContent='위 내용을 복사해 보관하세요';m.style.color='var(--ink-soft)';
 });
@@ -1054,10 +1054,10 @@ document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()
 
 /* ===== init ===== */
 function initUI(){
-  document.getElementById('tP').value=DB.get('tP',135);
+  document.getElementById('tP').value=DB.get('tP',140);
   document.getElementById('tC').value=DB.get('tC',2000);
   document.getElementById('tS').value=DB.get('tS',50);
-  document.getElementById('tCarb').value=DB.get('tCarb',220);
+  document.getElementById('tCarb').value=DB.get('tCarb',215);
   document.getElementById('tFat').value=DB.get('tFat',65);
   document.getElementById('inStart').value=DB.get('start',today());
   const b=DB.get('body:'+today(),null);
