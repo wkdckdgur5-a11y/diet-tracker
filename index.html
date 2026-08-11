@@ -170,6 +170,12 @@
     <div class="sub" id="woSub">설정에서 시작일을 지정하세요.</div>
     <div id="woList"></div>
   </div>
+
+  <div class="card">
+    <h2>운동 방법 보기</h2>
+    <div class="sub">전체 프로그램에서 쓰이는 모든 동작의 자세 가이드입니다.</div>
+    <div id="poseList"></div>
+  </div>
 </div>
 
 <!-- ============ 내 식품 ============ -->
@@ -538,6 +544,17 @@ function openPoseGuide(label){
   });
   document.getElementById('modal').classList.add('on');
 }
+function renderPoseList(){
+  const box=document.getElementById('poseList'); if(!box) return;
+  box.innerHTML='';
+  Object.keys(GUIDE).forEach(k=>{
+    const r=document.createElement('div'); r.className='entry';
+    r.style.cursor='pointer';
+    r.innerHTML=`<span class="nm">${k}</span><span class="mc">${GUIDE[k].target}</span>`;
+    r.addEventListener('click',()=>openPoseGuide(k));
+    box.appendChild(r);
+  });
+}
 
 /* ===== today log ===== */
 const getLog=()=>DB.get('log:'+today(),{b:[],l:[],d:[],s:[]});
@@ -888,7 +905,7 @@ function initUI(){
   document.getElementById('nWorkout').value=DB.get('notifyWorkout','19:30');
   document.getElementById('nLog').value=DB.get('notifyLog','22:00');
 }
-initFoods(); initUI(); renderToday(); renderFoods(); applyNotifSettings();
+initFoods(); initUI(); renderToday(); renderFoods(); applyNotifSettings(); renderPoseList();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderToday();applyNotifSettings();}});
 </script>
 </body>
