@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23123F3D'/><text y='70' x='50' font-size='60' text-anchor='middle' fill='%23C1571C' font-family='sans-serif' font-weight='bold'>食</text></svg>">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root{
     --bg:#F4F5F2; --paper:#FFF; --ink:#1B2321; --ink-soft:#5B655F;
@@ -227,7 +229,14 @@
   </div>
   <div class="card">
     <h2>알림</h2>
-    <div class="caution"><b>중요</b> — 웹앱 알림은 안드로이드 절전 정책 때문에 누락될 수 있습니다. <b>폰 기본 시계 앱에서 반복 알람</b>을 거는 방식을 권합니다. 예: 저녁 7시 30분 "운동", 밤 10시 "기록".</div>
+    <div class="field"><span>알림 사용</span>
+      <select id="nEnable"><option value="0">끄기</option><option value="1">켜기</option></select>
+    </div>
+    <div class="field"><span>운동 알림</span><input type="time" id="nWorkout" value="19:30"></div>
+    <div class="field"><span>기록 알림</span><input type="time" id="nLog" value="22:00"></div>
+    <button class="btn" id="btnNotify">알림 저장</button>
+    <div class="msg" id="nMsg"></div>
+    <div class="caution"><b>중요</b> — 웹앱 알림은 안드로이드 절전 정책 때문에 앱이 완전히 종료되면 누락될 수 있습니다. 이 앱을 <b>홈 화면에 추가</b>해두고 가끔 열어주면 신뢰도가 올라갑니다. 확실히 하려면 <b>폰 기본 시계 앱 반복 알람</b>을 병행하세요. 예: 저녁 7시 30분 "운동", 밤 10시 "기록".</div>
   </div>
   <div class="card">
     <h2>데이터</h2>
@@ -549,6 +558,56 @@ document.getElementById('btnReset').addEventListener('click',()=>{
   const m=document.getElementById('dMsg');m.textContent='삭제되었습니다';m.style.color='var(--warn)';
 });
 
+/* ===== notifications ===== */
+function fireNotif(title,body){
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const opts={body,icon:'icons/icon-192.png',badge:'icons/icon-192.png'};
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.ready.then(reg=>reg.showNotification(title,opts));
+    }else{
+      new Notification(title,opts);
+    }
+  }catch(e){}
+}
+function scheduleNotif(id,timeStr,title,body){
+  clearTimeout(window['_nt_'+id]);
+  if(!timeStr) return;
+  const [hh,mm]=timeStr.split(':').map(Number);
+  if(isNaN(hh)||isNaN(mm)) return;
+  const now=new Date();
+  const t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hh,mm,0,0);
+  if(t<=now) t.setDate(t.getDate()+1);
+  window['_nt_'+id]=setTimeout(()=>{
+    fireNotif(title,body);
+    scheduleNotif(id,timeStr,title,body); // 다음날로 재예약
+  },t-now);
+}
+function applyNotifSettings(){
+  clearTimeout(window._nt_wo); clearTimeout(window._nt_log);
+  if(!DB.get('notifyOn',false)) return;
+  scheduleNotif('wo',DB.get('notifyWorkout','19:30'),'운동 시간입니다','오늘의 운동 체크리스트를 확인하세요.');
+  scheduleNotif('log',DB.get('notifyLog','22:00'),'기록 시간입니다','오늘 식사와 체중을 기록했는지 확인하세요.');
+}
+document.getElementById('btnNotify').addEventListener('click',async ()=>{
+  const m=document.getElementById('nMsg');
+  const enable=document.getElementById('nEnable').value==='1';
+  if(enable){
+    if(!('Notification' in window)){m.textContent='이 브라우저는 알림을 지원하지 않습니다';m.style.color='var(--warn)';return;}
+    let perm=Notification.permission;
+    if(perm==='default') perm=await Notification.requestPermission();
+    if(perm!=='granted'){m.textContent='알림 권한이 거부되었습니다. 브라우저 설정에서 허용해주세요.';m.style.color='var(--warn)';document.getElementById('nEnable').value='0';DB.set('notifyOn',false);return;}
+  }
+  DB.set('notifyOn',enable);
+  DB.set('notifyWorkout',document.getElementById('nWorkout').value||'19:30');
+  DB.set('notifyLog',document.getElementById('nLog').value||'22:00');
+  applyNotifSettings();
+  m.textContent='저장됨';m.style.color='var(--ok)';setTimeout(()=>m.textContent='',1800);
+});
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
+
 /* ===== nav ===== */
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{
   const v=b.dataset.v;
@@ -568,9 +627,12 @@ function initUI(){
   document.getElementById('inStart').value=DB.get('start',today());
   const b=DB.get('body:'+today(),null);
   if(b){if(b.w)document.getElementById('inW').value=b.w;if(b.c)document.getElementById('inC').value=b.c;}
+  document.getElementById('nEnable').value=DB.get('notifyOn',false)?'1':'0';
+  document.getElementById('nWorkout').value=DB.get('notifyWorkout','19:30');
+  document.getElementById('nLog').value=DB.get('notifyLog','22:00');
 }
-initFoods(); initUI(); renderToday(); renderFoods();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderToday();}});
+initFoods(); initUI(); renderToday(); renderFoods(); applyNotifSettings();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderToday();applyNotifSettings();}});
 </script>
 </body>
 </html>
