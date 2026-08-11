@@ -307,6 +307,63 @@ function initFoods(){
 const getFoods=()=>DB.get('foods',[]);
 const setFoods=v=>DB.set('foods',v);
 
+/* ===== 추천 조합 ===== */
+const COMBOS={
+  b:[
+    {name:'A. 기본형',items:[
+      {n:'삶은계란 2개',p:12,c:140,s:0},
+      {n:'통밀식빵 1쪽',p:4,c:90,s:2}
+    ]},
+    {name:'B. 요거트형',items:[
+      {n:'삶은계란 2개',p:12,c:140,s:0},
+      {n:'무가당 그릭요거트 100g',p:9,c:100,s:4},
+      {n:'방울토마토 한 컵',p:1,c:30,s:5}
+    ]},
+    {name:'C. 시간 없는 날',items:[
+      {n:'무가당 두유 1팩',p:8,c:110,s:1},
+      {n:'통밀크래커 3~4장',p:3,c:80,s:2}
+    ]}
+  ],
+  l:[
+    {name:'A. 백반형',items:[
+      {n:'백반 (밥 2/3 + 반찬 2가지)',p:35,c:600,s:5}
+    ]},
+    {name:'B. 편의점형',items:[
+      {n:'편의점 단백질 도시락',p:32,c:520,s:8},
+      {n:'삶은계란 1개',p:6,c:70,s:0}
+    ]},
+    {name:'C. 외식',items:[
+      {n:'국밥 · 백반 · 쌈밥류',p:35,c:650,s:5}
+    ]}
+  ],
+  d:[
+    {name:'A. 닭가슴살형',items:[
+      {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1},
+      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0},
+      {n:'냉동 브로콜리',p:2,c:40,s:2}
+    ]},
+    {name:'B. 두부·생선형',items:[
+      {n:'부침두부 반 모',p:10,c:120,s:1},
+      {n:'고등어구이 간편팩',p:20,c:180,s:0},
+      {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0}
+    ]},
+    {name:'C. 늦게 귀가한 날',items:[
+      {n:'삶은계란 3개',p:18,c:210,s:0},
+      {n:'참치캔 소 (기름제거)',p:15,c:110,s:0},
+      {n:'방울토마토 한 컵',p:1,c:30,s:5}
+    ]}
+  ],
+  s:[
+    {name:'단백질 간식',items:[
+      {n:'견과류 소포장 25g',p:5,c:150,s:2}
+    ]},
+    {name:'단 게 당길 때',items:[
+      {n:'다크초콜릿 2~3조각',p:2,c:90,s:6}
+    ]}
+  ]
+};
+function comboTotal(combo){return combo.items.reduce((a,i)=>({p:a.p+i.p,c:a.c+i.c,s:a.s+i.s}),{p:0,c:0,s:0});}
+
 /* ===== program ===== */
 const PROGRAM=[
  {wk:[1,2],name:'PHASE 1 적응기',days:{1:['전신 서킷',[['스쿼트','2 × 12'],['무릎 푸시업','2 × 10'],['글루트 브릿지','2 × 15'],['플랭크','2 × 20초'],['종아리 레이즈','2 × 15']]],3:null,5:null}},
@@ -359,9 +416,13 @@ function renderToday(){
       r.querySelector('.del').addEventListener('click',()=>{const l=getLog();l[k].splice(i,1);setLog(l);});
       div.appendChild(r);
     });
-    const btn=document.createElement('button'); btn.className='add-btn'; btn.textContent='+ '+label+' 추가';
+    const btnRow=document.createElement('div'); btnRow.style.cssText='display:flex;gap:6px;margin-top:5px;';
+    const btn=document.createElement('button'); btn.className='add-btn'; btn.style.marginTop='0'; btn.textContent='+ 추가';
     btn.addEventListener('click',()=>openPicker(k,label));
-    div.appendChild(btn);
+    const cbtn=document.createElement('button'); cbtn.className='add-btn'; cbtn.style.marginTop='0'; cbtn.style.color='var(--amber)'; cbtn.style.borderColor='var(--amber-soft)'; cbtn.textContent='★ 추천 조합';
+    cbtn.addEventListener('click',()=>openCombos(k,label));
+    btnRow.appendChild(btn); btnRow.appendChild(cbtn);
+    div.appendChild(btnRow);
     box.appendChild(div);
   });
   renderWorkout(); renderHeader();
@@ -423,6 +484,39 @@ function openQty(mealKey,f){
     l[mealKey].push({n:f.n,p:f.p,c:f.c,s:f.s,q});
     setLog(l); document.getElementById('modal').classList.remove('on');
   };
+}
+function openCombos(mealKey,label){
+  const m=document.getElementById('modal');
+  document.getElementById('mTitle').textContent=label+' 추천 조합';
+  const body=document.getElementById('mBody'); body.innerHTML='';
+  const combos=COMBOS[mealKey]||[];
+  if(!combos.length){body.innerHTML='<div class="empty">준비된 조합이 없습니다.</div>';}
+  combos.forEach(combo=>{
+    const t=comboTotal(combo);
+    const wrap=document.createElement('div');
+    wrap.style.cssText='border:1px solid var(--line);padding:10px 11px;margin-bottom:9px;';
+    wrap.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <span style="font-weight:700;font-size:13.5px;">${combo.name}</span>
+        <span class="mono" style="font-size:11px;color:var(--ink-soft);">${t.p}g · ${t.c}kcal</span>
+      </div>
+      <div style="font-size:12px;color:var(--ink-soft);line-height:1.7;">${combo.items.map(i=>i.n).join(' · ')}</div>`;
+    const abtn=document.createElement('button');
+    abtn.className='add-btn'; abtn.style.marginTop='8px'; abtn.textContent='이 조합 전체 추가';
+    abtn.addEventListener('click',()=>{
+      const fs=getFoods();
+      combo.items.forEach(i=>{
+        if(!fs.find(x=>x.n===i.n)){ fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:i.n,p:i.p,c:i.c,s:i.s,v:'ok',f:1}); }
+      });
+      setFoods(fs);
+      const l=getLog(); l[mealKey]=l[mealKey]||[];
+      combo.items.forEach(i=>l[mealKey].push({n:i.n,p:i.p,c:i.c,s:i.s,q:1}));
+      setLog(l);
+      document.getElementById('modal').classList.remove('on');
+    });
+    wrap.appendChild(abtn);
+    body.appendChild(wrap);
+  });
+  m.classList.add('on');
 }
 document.getElementById('mClose').onclick=()=>document.getElementById('modal').classList.remove('on');
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')e.target.classList.remove('on');});
