@@ -329,6 +329,16 @@ function initFoods(){
   DB.set('foods',SEED.map((f,i)=>({...f,id:'f'+i})));
   DB.set('foodsInit',true);
 }
+function migrateFoods(){
+  if(DB.get('foodsFix1',false)) return;
+  const FIX={
+    '무가당 그릭요거트 100g':{p:7,c:90,s:1.8,v:'ok'},
+    '슬라이스 치즈 2장':{p:8,c:90,s:0.4,v:'warn'}
+  };
+  const foods=getFoods().map(f=>FIX[f.n]?{...f,...FIX[f.n]}:f);
+  setFoods(foods);
+  DB.set('foodsFix1',true);
+}
 const getFoods=()=>DB.get('foods',[]);
 const setFoods=v=>DB.set('foods',v);
 
@@ -905,7 +915,7 @@ function initUI(){
   document.getElementById('nWorkout').value=DB.get('notifyWorkout','19:30');
   document.getElementById('nLog').value=DB.get('notifyLog','22:00');
 }
-initFoods(); initUI(); renderToday(); renderFoods(); applyNotifSettings(); renderPoseList();
+initFoods(); migrateFoods(); initUI(); renderToday(); renderFoods(); applyNotifSettings(); renderPoseList();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderToday();applyNotifSettings();}});
 </script>
 </body>
