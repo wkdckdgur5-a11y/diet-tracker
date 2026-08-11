@@ -1,4 +1,4 @@
-const CACHE = 'ft-cache-v1';
+const CACHE = 'ft-cache-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,16 +13,15 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// 네트워크 우선: 온라인이면 항상 최신 버전을 받고, 오프라인일 때만 캐시로 대체
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached =>
-      cached || fetch(e.request).then(res => {
-        const resClone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, resClone)).catch(() => {});
-        return res;
-      }).catch(() => cached)
-    )
+    fetch(e.request).then(res => {
+      const resClone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, resClone)).catch(() => {});
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
 
