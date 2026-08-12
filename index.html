@@ -391,6 +391,7 @@ const SEED=[
   {n:'소주 1병 (제로슈가)',p:0,c:320,s:0,carb:0,fat:0,v:'warn',f:0},
   {n:'쿠키링 요거트 131g',p:5,c:140,s:17,carb:25,fat:2.5,v:'no',f:0},
   {n:'오리온 고래밥 46g',p:4,c:206,s:5,carb:34,fat:6,v:'warn',f:0},
+  {n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1},
   ...CARBS,
   ...CAFETERIA
 ];
@@ -462,6 +463,13 @@ function migrateFoods(){
     if(!fs.find(x=>x.n===item.n)) fs.push({...item,id:'f'+Date.now()+Math.random().toString(36).slice(2,6)});
     setFoods(fs);
     DB.set('foodsSnack1',true);
+  }
+  if(!DB.get('foodsKimbap1',false)){
+    const fs=getFoods();
+    const item={n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1};
+    if(!fs.find(x=>x.n===item.n)) fs.push({...item,id:'f'+Date.now()+Math.random().toString(36).slice(2,6)});
+    setFoods(fs);
+    DB.set('foodsKimbap1',true);
   }
 }
 const getFoods=()=>DB.get('foods',[]);
