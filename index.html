@@ -354,14 +354,18 @@ const MEALS=[['b','아침'],['l','점심'],['d','저녁'],['s','간식']];
 /* ===== 구내식당 구성요소 =====
    급식·백반은 성분표가 없으므로 반찬 종류별 평균치를 한 번만 등록해두고,
    매일 수량(0.5/1/1.5)만 조절해 기록한다. 새 식품을 매일 등록하지 않기 위한 것. */
+/* g(그룹)는 이 식품을 먹는 목적이 탄/단/지 중 무엇인지를 나타낸다. 칼로리 기여도만으로는
+   계란·두부·두유·치즈처럼 지방 칼로리가 더 커도 이 식단에서 단백질원으로 쓰이는 식품이
+   지방으로 잘못 분류되므로, project-brief.md의 "단백질원 선택제" 목록 등 실제 용도를
+   기준으로 직접 태깅한다. g가 없는 식품(사용자가 직접 등록한 것)만 계산식으로 추정한다. */
 const CAFETERIA=[
-  {n:'구내식당 밥 반 공기',p:3,c:150,s:0,carb:33,fat:0.5,v:'ok',f:1},
-  {n:'구내식당 국 1그릇',p:3,c:60,s:0,carb:5,fat:2.5,v:'ok',f:1},
-  {n:'구내식당 고기반찬 1접시',p:15,c:220,s:1,carb:5,fat:14,v:'ok',f:1},
-  {n:'구내식당 튀김·전 1조각',p:7,c:150,s:1,carb:12,fat:8,v:'warn',f:1},
-  {n:'구내식당 나물·야채반찬',p:2,c:50,s:1,carb:4,fat:3,v:'ok',f:1},
-  {n:'구내식당 면·잡채반찬',p:4,c:130,s:3,carb:20,fat:4,v:'warn',f:1},
-  {n:'구내식당 김치·절임',p:1,c:15,s:1,carb:2,fat:0.3,v:'ok',f:1}
+  {n:'구내식당 밥 반 공기',p:3,c:150,s:0,carb:33,fat:0.5,v:'ok',f:1,g:'carb'},
+  {n:'구내식당 국 1그릇',p:3,c:60,s:0,carb:5,fat:2.5,v:'ok',f:1,g:'carb'},
+  {n:'구내식당 고기반찬 1접시',p:15,c:220,s:1,carb:5,fat:14,v:'ok',f:1,g:'protein'},
+  {n:'구내식당 튀김·전 1조각',p:7,c:150,s:1,carb:12,fat:8,v:'warn',f:1,g:'fat'},
+  {n:'구내식당 나물·야채반찬',p:2,c:50,s:1,carb:4,fat:3,v:'ok',f:1,g:'carb'},
+  {n:'구내식당 면·잡채반찬',p:4,c:130,s:3,carb:20,fat:4,v:'warn',f:1,g:'carb'},
+  {n:'구내식당 김치·절임',p:1,c:15,s:1,carb:2,fat:0.3,v:'ok',f:1,g:'carb'}
 ];
 
 /* ===== 아침 탄수화물원 =====
@@ -370,28 +374,28 @@ const CAFETERIA=[
    조리 없이 책상에서도 눈에 띄지 않게 먹을 수 있다.
    무설탕 여부에 따라 당류 편차가 커서, 실제 라벨 확인 전까지는 잠정치. */
 const CARBS=[
-  {n:'미숫가루 1회분(30g, 무가당)',p:4,c:115,s:1,carb:20,fat:2,v:'ok',f:1}
+  {n:'미숫가루 1회분(30g, 무가당)',p:4,c:115,s:1,carb:20,fat:2,v:'ok',f:1,g:'carb'}
 ];
 
 /* ===== seed foods ===== */
 const SEED=[
-  {n:'삶은계란 2개',p:12,c:140,s:0,carb:1,fat:10,v:'ok',f:1},
-  {n:'삶은계란 3개',p:18,c:210,s:0,carb:1.5,fat:15,v:'ok',f:1},
-  {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,carb:5,fat:4.8,v:'ok',f:1},
-  {n:'통밀식빵 1쪽',p:4,c:90,s:2,carb:15,fat:2,v:'ok',f:1},
-  {n:'참치캔 소 (기름제거)',p:15,c:110,s:0,carb:0,fat:5,v:'ok',f:1},
-  {n:'부침두부 반 모',p:10,c:120,s:1,carb:3,fat:7,v:'ok',f:1},
-  {n:'무가당 두유 1팩',p:8,c:110,s:1,carb:5,fat:6,v:'ok',f:1},
-  {n:'슬라이스 치즈 2장',p:8,c:90,s:0.4,carb:1,fat:6,v:'warn',f:0},
-  {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1,carb:1,fat:2.5,v:'ok',f:1},
-  {n:'방울토마토 한 컵',p:1,c:30,s:5,carb:6,fat:0,v:'ok',f:1},
-  {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,carb:32,fat:1,v:'ok',f:1},
-  {n:'편의점 단백질 도시락',p:32,c:520,s:8,carb:60,fat:15,v:'ok',f:0},
-  {n:'견과류 소포장 25g',p:5,c:150,s:2,carb:5,fat:13,v:'warn',f:0},
-  {n:'소주 1병 (제로슈가)',p:0,c:320,s:0,carb:0,fat:0,v:'warn',f:0},
-  {n:'쿠키링 요거트 131g',p:5,c:140,s:17,carb:25,fat:2.5,v:'no',f:0},
-  {n:'오리온 고래밥 46g',p:4,c:206,s:5,carb:34,fat:6,v:'warn',f:0},
-  {n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1},
+  {n:'삶은계란 2개',p:12,c:140,s:0,carb:1,fat:10,v:'ok',f:1,g:'protein'},
+  {n:'삶은계란 3개',p:18,c:210,s:0,carb:1.5,fat:15,v:'ok',f:1,g:'protein'},
+  {n:'무가당 그릭요거트 100g',p:7,c:90,s:1.8,carb:5,fat:4.8,v:'ok',f:1,g:'protein'},
+  {n:'통밀식빵 1쪽',p:4,c:90,s:2,carb:15,fat:2,v:'ok',f:1,g:'carb'},
+  {n:'참치캔 소 (기름제거)',p:15,c:110,s:0,carb:0,fat:5,v:'ok',f:1,g:'protein'},
+  {n:'부침두부 반 모',p:10,c:120,s:1,carb:3,fat:7,v:'ok',f:1,g:'protein'},
+  {n:'무가당 두유 1팩',p:8,c:110,s:1,carb:5,fat:6,v:'ok',f:1,g:'protein'},
+  {n:'슬라이스 치즈 2장',p:8,c:90,s:0.4,carb:1,fat:6,v:'warn',f:0,g:'protein'},
+  {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1,carb:1,fat:2.5,v:'ok',f:1,g:'protein'},
+  {n:'방울토마토 한 컵',p:1,c:30,s:5,carb:6,fat:0,v:'ok',f:1,g:'carb'},
+  {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,carb:32,fat:1,v:'ok',f:1,g:'carb'},
+  {n:'편의점 단백질 도시락',p:32,c:520,s:8,carb:60,fat:15,v:'ok',f:0,g:'protein'},
+  {n:'견과류 소포장 25g',p:5,c:150,s:2,carb:5,fat:13,v:'warn',f:0,g:'fat'},
+  {n:'소주 1병 (제로슈가)',p:0,c:320,s:0,carb:0,fat:0,v:'warn',f:0,g:'carb'},
+  {n:'쿠키링 요거트 131g',p:5,c:140,s:17,carb:25,fat:2.5,v:'no',f:0,g:'carb'},
+  {n:'오리온 고래밥 46g',p:4,c:206,s:5,carb:34,fat:6,v:'warn',f:0,g:'carb'},
+  {n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1,g:'carb'},
   ...CARBS,
   ...CAFETERIA
 ];
@@ -466,10 +470,17 @@ function migrateFoods(){
   }
   if(!DB.get('foodsKimbap1',false)){
     const fs=getFoods();
-    const item={n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1};
+    const item={n:'구내식당 김밥 1줄',p:11,c:380,s:5,carb:58,fat:9,v:'warn',f:1,g:'carb'};
     if(!fs.find(x=>x.n===item.n)) fs.push({...item,id:'f'+Date.now()+Math.random().toString(36).slice(2,6)});
     setFoods(fs);
     DB.set('foodsKimbap1',true);
+  }
+  /* 내 식품 탭을 탄/단/지 그룹으로 나누기 위한 g 태그를, 이미 등록되어 있던 식품에 소급 적용. */
+  if(!DB.get('foodsGroup1',false)){
+    const G={};
+    SEED.forEach(f=>{G[f.n]=f.g;});
+    setFoods(getFoods().map(f=>G[f.n]?{...f,g:G[f.n]}:f));
+    DB.set('foodsGroup1',true);
   }
 }
 const getFoods=()=>DB.get('foods',[]);
@@ -515,7 +526,7 @@ const COMBOS={
     {name:'A. 닭가슴살형',items:[
       {n:'수비드 닭가슴살 1팩',p:23,c:120,s:1,fat:2.5},
       {n:'즉석 현미밥 1/2공기',p:3,c:150,s:0,fat:1},
-      {n:'냉동 모듬채소',p:2,c:40,s:2,fat:0.5}
+      {n:'냉동 브로콜리',p:2,c:40,s:2,fat:0.5}
     ]},
     {name:'B. 두부·참치형',items:[
       {n:'부침두부 반 모',p:10,c:120,s:1,fat:7},
@@ -979,18 +990,37 @@ document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='
 
 /* ===== food list ===== */
 let foodFilter='fav';
+/* 그 식품을 먹는 목적이 탄/단/지 중 무엇인지 판단한다. SEED/CAFETERIA/CARBS의 식품은
+   g 태그(위 정의 참고)를 그대로 쓰고, 사용자가 직접 등록해 g가 없는 식품만 칼로리
+   기여도가 가장 큰 영양소로 추정한다 — 계란·두부처럼 지방 칼로리가 더 큰 단백질원은
+   이 추정만으론 지방으로 잘못 분류되니 주의(그래서 알고 있는 식품은 g로 직접 지정함). */
+function macroGroup(f){
+  if(f.g) return f.g;
+  const shares={carb:(f.carb||0)*4,protein:(f.p||0)*4,fat:(f.fat||0)*9};
+  let best='carb',bestV=-1;
+  ['carb','protein','fat'].forEach(k=>{if(shares[k]>bestV){bestV=shares[k];best=k;}});
+  return best;
+}
+const MACRO_GROUPS=[['carb','탄수화물'],['protein','단백질'],['fat','지방']];
+function renderFoodRow(el,f){
+  const d=document.createElement('div');d.className='food';
+  d.innerHTML=`<span class="star${f.f?'':' off'}">★</span><div class="food-main"><div class="food-nm">${f.n}</div><div class="food-mc">${f.c}kcal · 탄 ${f.carb||0} · 단 ${f.p} · 지 ${f.fat||0} · 당류 ${f.s}g</div></div><span class="verdict v-${f.v}">${f.v==='ok'?'적합':f.v==='warn'?'주의':'디저트'}</span><span class="del" style="color:var(--warn);padding:0 4px;cursor:pointer">×</span>`;
+  d.querySelector('.star').addEventListener('click',e=>{e.stopPropagation();const fs=getFoods();const t=fs.find(x=>x.id===f.id);t.f=t.f?0:1;setFoods(fs);renderFoods();});
+  d.querySelector('.del').addEventListener('click',e=>{e.stopPropagation();if(!confirm(f.n+' 을(를) 삭제할까요?'))return;setFoods(getFoods().filter(x=>x.id!==f.id));renderFoods();});
+  el.appendChild(d);
+}
 function renderFoods(){
   const el=document.getElementById('foodList'); el.innerHTML='';
   let list=getFoods().slice();
   if(foodFilter==='fav') list=list.filter(f=>f.f);
   list.sort((a,b)=>a.n.localeCompare(b.n));
   if(!list.length){el.innerHTML='<div class="empty">'+(foodFilter==='fav'?'자주 먹는 식품이 없습니다.<br>전체 목록에서 ★를 눌러 추가하세요.':'등록된 식품이 없습니다.')+'</div>';return;}
-  list.forEach(f=>{
-    const d=document.createElement('div');d.className='food';
-    d.innerHTML=`<span class="star${f.f?'':' off'}">★</span><div class="food-main"><div class="food-nm">${f.n}</div><div class="food-mc">${f.c}kcal · 탄 ${f.carb||0} · 단 ${f.p} · 지 ${f.fat||0} · 당류 ${f.s}g</div></div><span class="verdict v-${f.v}">${f.v==='ok'?'적합':f.v==='warn'?'주의':'디저트'}</span><span class="del" style="color:var(--warn);padding:0 4px;cursor:pointer">×</span>`;
-    d.querySelector('.star').addEventListener('click',e=>{e.stopPropagation();const fs=getFoods();const t=fs.find(x=>x.id===f.id);t.f=t.f?0:1;setFoods(fs);renderFoods();});
-    d.querySelector('.del').addEventListener('click',e=>{e.stopPropagation();if(!confirm(f.n+' 을(를) 삭제할까요?'))return;setFoods(getFoods().filter(x=>x.id!==f.id));renderFoods();});
-    el.appendChild(d);
+  MACRO_GROUPS.forEach(([key,label],gi)=>{
+    const items=list.filter(f=>macroGroup(f)===key);
+    if(!items.length) return;
+    const h=document.createElement('div'); h.className='meal-name'; h.style.cssText=`margin:${gi?14:0}px 0 6px;`; h.textContent=`${label} 위주 (${items.length})`;
+    el.appendChild(h);
+    items.forEach(f=>renderFoodRow(el,f));
   });
 }
 document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
@@ -1028,7 +1058,7 @@ document.getElementById('btnPaste').addEventListener('click',()=>{
     arr.forEach(o=>{
       if(!o||!o.n) return;
       const p=+o.p||0,c=+o.c||0,fat=+o.fat||0;
-      fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:String(o.n),p,c,fat,s:+o.s||0,carb:(o.carb!=null?+o.carb:deriveCarb(c,p,fat)),v:['ok','warn','no'].includes(o.v)?o.v:'ok',f:1});
+      fs.push({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),n:String(o.n),p,c,fat,s:+o.s||0,carb:(o.carb!=null?+o.carb:deriveCarb(c,p,fat)),v:['ok','warn','no'].includes(o.v)?o.v:'ok',f:1,...(['carb','protein','fat'].includes(o.g)?{g:o.g}:{})});
       cnt++;
     });
     setFoods(fs);
